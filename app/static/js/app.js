@@ -8,10 +8,23 @@ function destroy() {
   }
 }
 
+function sendMessage() {
+  if (appConfig.result) {
+    $("#message-sending-table").empty()
+    $("#message-sending-table-title").text("From " + appConfig.result.source_id + " to " + appConfig.result.target_id)
+    $("#message-sending-table").append(
+        "<tr><td>" + appConfig.result.path.join("\u2192").substring(0, 60) + "</td>" +
+        "<td>" + appConfig.result.service_packets + "</td>" +
+        "<td>" + appConfig.result.data_packets + "</td>" +
+        "<td>" + appConfig.result.time + "</td></tr>");
+        //"<td>" + value.traffic + "</td></tr>");
+    $('#message-sending-table-modal').modal('toggle');
+  }
+}
+
 function init() {
   $.getJSON('/links', function(edges) {
     $.getJSON('/nodes', function(nodes) {
-
       destroy();
 
       var data = {
@@ -50,9 +63,8 @@ function init() {
         },
         physics: false,
         manipulation: {
-            enabled: false
-//          initiallyActive: true,
-//          editEdge: false,
+          initiallyActive: true,
+          editEdge: false,
         }
       };
       network = new vis.Network(container, data, options);
@@ -61,6 +73,7 @@ function init() {
       network.on("doubleClick", doubleClickHandler);
     });
   });
+  sendMessage();
 }
 
 function doubleClickHandler(params) {
@@ -68,7 +81,8 @@ function doubleClickHandler(params) {
   if (params.edges.length == 1) {
     edge_id = params.edges[0]
     $.getJSON('/link', {'link_id': edge_id}, function(link) {
-//      if Object.keys(link).length {
+      if (link) {
+        console.log(link);
           var arrows = false;
           if (link.type == "DUPLEX") {
              link.type = "HALF_DUPLEX"
@@ -78,13 +92,13 @@ function doubleClickHandler(params) {
           }
           network.clustering.updateEdge(edge_id,  {arrows: arrows})
           $.post('update-link', link)
-//      }
+      }
     });
   } else if (params.nodes.length == 1) {
     // If node - get routing table
     node_id = params.nodes[0]
     $.getJSON('/routing-table', {'node_id': node_id}, function(table) {
-//      if Object.keys(table).length {
+      if (table) {
           $("#routing-table").empty()
           $("#routing-table-title").text("Routing table for node " + node_id)
           jQuery.each(table, function(index, value) {
@@ -93,7 +107,7 @@ function doubleClickHandler(params) {
               "<td>" + value.cost + "</td></tr>");
           });
           $('#routing-table-modal').modal('toggle');
-//      }
+      }
     });
   }
 }

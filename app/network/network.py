@@ -15,6 +15,10 @@ from app.network.link import Link
 
 
 class Network:
+    SPEED = 500
+    HEADER_SIZE = 60
+    SERVICE_PACKET_SIZE = 100
+
     def __init__(self):
         self.nodes = []
         self.links = []
@@ -78,27 +82,62 @@ class Network:
             for node_id in range(NODES_NUMBER):
                 self.add_node(regional_network_id * NODES_NUMBER + node_id + 1, regional_network_id + 1)
 
-    def virtual_circuit(self, source, target, message_size, packet_size):
+    def virtual_circuit(self, source_id, target_id, message_size, packet_size):
+        source = self.get_node_by_id(source_id)
+        target = self.get_node_by_id(target_id)
         path = source.routing_table[target]['path']
-        speed = 100
         transitions = len(path) - 1
 
-        data_packets_number = math.ceil(message_size / packet_size) * transitions
-        service_packets_number = (2 + data_packets_number) * transitions
-        size_of_service_package = 100
-        traffic = (data_packets_number * packet_size + service_packets_number * size_of_service_package) / transitions
+        data_packets_number = math.ceil(message_size / (packet_size - self.HEADER_SIZE)) * transitions
+        service_packets_number = 2 * transitions * (data_packets_number + 1)
+        data_traffic = data_packets_number * packet_size
+        service_traffic = service_packets_number * self.SERVICE_PACKET_SIZE
+        traffic = data_traffic + service_traffic
 
         time = 0
         for i, node in enumerate(path[:-1]):
-            time += (traffic / speed) * node.neighbours[path[i + 1]]
+            time += (traffic / self.SPEED) * node.neighbours[path[i + 1]].weight
 
         return {
+            'mode': 'virtual_circuit',
+            'source_id': source_id,
+            'target_id': target_id,
             'service_packets': service_packets_number,
+            'service_traffic': service_traffic,
             'data_packets': data_packets_number,
+            'data_traffic': data_traffic,
             'time': int(time),
-            'path': path,
-            'traffic': traffic,
-            'target': target
+            'path': [node.id for node in path],
+            'traffic': traffic
+        }
+
+    def datagram(self, source_id, target_id, message_size, packet_size):
+        source = self.get_node_by_id(source_id)
+        target = self.get_node_by_id(target_id)
+        path = source.routing_table[target]['path']
+        transitions = len(path) - 1
+
+        data_packets_number = math.ceil(message_size / (packet_size - self.HEADER_SIZE)) * transitions
+        service_packets_number = transitions * data_packets_number
+        data_traffic = data_packets_number * packet_size
+        service_traffic = service_packets_number * self.SERVICE_PACKET_SIZE
+        traffic = data_traffic + service_traffic
+
+        time = 0
+        for i, node in enumerate(path[:-1]):
+            time += (traffic / self.SPEED) * node.neighbours[path[i + 1]].weight
+
+        return {
+            'mode': 'datagram',
+            'source_id': source_id,
+            'target_id': target_id,
+            'service_packets': service_packets_number,
+            'service_traffic': service_traffic,
+            'data_packets': data_packets_number,
+            'data_traffic': data_traffic,
+            'time': int(time),
+            'path': [node.id for node in path],
+            'traffic': traffic
         }
 
     def add_node(self, node_id, network_id):
