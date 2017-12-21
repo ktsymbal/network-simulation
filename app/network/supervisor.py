@@ -17,11 +17,13 @@ class Supervisor:
         dijkstra_result = self.dijkstra_algorithm(self.network, node)
         for n, path_info in dijkstra_result.items():
             path = []
+            cost = 0
             previous_node = n
             while previous_node:
+                cost += path_info[0]
                 path.append(previous_node)
                 previous_node = dijkstra_result[previous_node][1]
-            routing_table[n] = list(reversed(path))
+            routing_table[n] = {'path': list(reversed(path)), 'cost': cost}
         return routing_table
 
     @staticmethod

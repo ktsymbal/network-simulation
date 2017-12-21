@@ -1,14 +1,17 @@
-from math import floor
+from math import floor, ceil
 from random import choice
 
+import math
 import matplotlib.pyplot as plt
 import networkx as nx
 from cached_property import cached_property
 
-from constants import REGIONAL_NETWORKS_NUMBER, NODES_NUMBER, LINK_WEIGHTS, LinkType, NODE_DEGREE
-from link import Link
-from node import Node
-from supervisor import Supervisor
+from app.exceptions import NoSuchLink, NoSuchNode
+from app.network.constants import REGIONAL_NETWORKS_NUMBER, NODES_NUMBER, LINK_WEIGHTS, LinkType, NODE_DEGREE
+from app.network.node import Node
+from app.network.supervisor import Supervisor
+
+from app.network.link import Link
 
 
 class Network:
@@ -54,6 +57,13 @@ class Network:
                 self.add_link(node1, node2)
                 edges_left -= 1
 
+    @staticmethod
+    def get_non_adjacent_node(node, set_of_nodes):
+        node2 = node
+        while node2 == node or node in node2.neighbours:
+            node2 = choice(set_of_nodes)
+        return node2
+
     def generate_links_between_regional_networks(self):
         """
         Create satellite links between regional networks.
@@ -68,24 +78,78 @@ class Network:
             for node_id in range(NODES_NUMBER):
                 self.add_node(regional_network_id * NODES_NUMBER + node_id + 1, regional_network_id + 1)
 
+    def virtual_circuit(self, source, target, message_size, packet_size):
+        path = source.routing_table[target]['path']
+        speed = 100
+        transitions = len(path) - 1
+
+        data_packets_number = math.ceil(message_size / packet_size) * transitions
+        service_packets_number = (2 + data_packets_number) * transitions
+        size_of_service_package = 100
+        traffic = (data_packets_number * packet_size + service_packets_number * size_of_service_package) / transitions
+
+        time = 0
+        for i, node in enumerate(path[:-1]):
+            time += (traffic / speed) * node.neighbours[path[i + 1]]
+
+        return {
+            'service_packets': service_packets_number,
+            'data_packets': data_packets_number,
+            'time': int(time),
+            'path': path,
+            'traffic': traffic,
+            'target': target
+        }
+
     def add_node(self, node_id, network_id):
         self.nodes.append(Node(node_id, network_id))
 
-    def add_link(self, node1, node2, weight=None, type=LinkType.DUPLEX):
+    def add_link(self, node1, node2, weight=None, type=None):
         if not weight:
-            weight = choice(LINK_WEIGHTS)
+            if type == LinkType.SATELLITE:
+                weight = choice(LINK_WEIGHTS[-3:])
+            else:
+                weight = choice(LINK_WEIGHTS)
 
-        link = Link(node1, node2, type, weight)
+        if not type:
+            type = choice([LinkType.DUPLEX, LinkType.HALF_DUPLEX])
+
+        link = Link(len(self.links) + 1, node1, node2, type, weight)
         self.links.append(link)
         node1.add_neighbour_node(node2, link)
         node2.add_neighbour_node(node1, link)
 
-    @staticmethod
-    def get_non_adjacent_node(node, set_of_nodes):
-        node2 = node
-        while node2 == node or node in node2.neighbours:
-            node2 = choice(set_of_nodes)
-        return node2
+    def nodes_for_frontend(self):
+        return [node.representation_for_frontend() for node in self.nodes]
+
+    def links_for_frontend(self):
+        return [link.representation_for_frontend() for link in self.links]
+
+    def get_node_by_id(self, id):
+        """
+        Search for a link with id. If it doesn't exist, raise NoSuchLink exception.
+        """
+        node = self.nodes[id - 1]
+        try:
+            return node if node.id == id else list(filter(lambda l: l.id == id, self.nodes))[0]
+        except IndexError:
+            raise NoSuchNode(id)
+
+    def get_link_by_id(self, id):
+        """
+        Search for a link with id. If it doesn't exist, raise NoSuchLink exception.
+        """
+        link = self.links[id - 1]
+        try:
+            return link if link.id == id else list(filter(lambda l: l.id == id, self.links))[0]
+        except IndexError:
+            raise NoSuchLink(id)
+
+    def update_link(self, link_dict):
+        try:
+            self.get_link_by_id(link_dict['id']).update_from_dict(link_dict)
+        except NoSuchLink:
+            pass
 
 
 if __name__ == '__main__':
