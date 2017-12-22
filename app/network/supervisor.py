@@ -38,7 +38,7 @@ class Supervisor:
             current_node = to_visit.pop()
             for n, l in current_node.neighbours.items():
                 if n not in visited:
-                    current_distance = table[current_node][0] + l.weight
+                    current_distance = table[current_node][0] + l.type.value * l.weight
                     if current_distance < table[n][0]:
                         table[n] = [current_distance, current_node]
                     to_visit.add(n)

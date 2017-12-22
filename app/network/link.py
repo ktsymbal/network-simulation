@@ -7,7 +7,7 @@ class Link:
         self.node1 = node1
         self.node2 = node2
         self.type = type
-        self.weight = type.value * weight
+        self.weight = weight
 
     def representation_for_frontend(self):
         dictionary = {
@@ -15,7 +15,7 @@ class Link:
             'to': self.node2.id,
             'id': self.id,
             'type': self.type.name,
-            'label': self.weight // self.type.value,
+            'label': self.weight,
         }
         if self.type in [LinkType.SATELLITE, LinkType.HALF_DUPLEX]:
             dictionary['dashes'] = False if self.type == self.type.HALF_DUPLEX else [10, 10]

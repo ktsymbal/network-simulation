@@ -16,8 +16,8 @@ function sendMessage() {
         "<tr><td>" + appConfig.result.path.join("\u2192").substring(0, 60) + "</td>" +
         "<td>" + appConfig.result.service_packets + "</td>" +
         "<td>" + appConfig.result.data_packets + "</td>" +
-        "<td>" + appConfig.result.time + "</td></tr>");
-        //"<td>" + value.traffic + "</td></tr>");
+        "<td>" + appConfig.result.time + "</td>" +
+        "<td>" + appConfig.service_traffic + "</td></tr>" );
     $('#message-sending-table-modal').modal('toggle');
   }
 }
@@ -64,7 +64,41 @@ function init() {
         physics: false,
         manipulation: {
           initiallyActive: true,
-          editEdge: false,
+          addNode: function (data, callback) {
+            data.id = currentID;
+            data.label = data.id;
+            currentID++;
+            callback(data)
+          },
+          addEdge: function (data, callback) {
+            // filling in the popup DOM elements
+            if (data.from == data.to) {
+              alert("You can't connect the node to itself");
+              callback(null);
+              return
+            }
+            console.log(data);
+            $.post('/add-connection', data, function(connection){
+              callback(connection);
+            });
+          },
+          deleteEdge: function (data, callback) {
+            $.ajax({
+              url: '/delete-elements',
+              data: data,
+              type: 'DELETE'
+            });
+            callback(data)
+          },
+          deleteNode: function (data, callback) {
+            $.ajax({
+              url: '/delete-elements',
+              data: data,
+              type: 'DELETE'
+            });
+            callback(data)
+          },
+          editEdge: false
         }
       };
       network = new vis.Network(container, data, options);
@@ -83,7 +117,7 @@ function doubleClickHandler(params) {
     $.getJSON('/link', {'link_id': edge_id}, function(link) {
       if (link) {
         console.log(link);
-          var arrows = false;
+          var arrows = 'undefined';
           if (link.type == "DUPLEX") {
              link.type = "HALF_DUPLEX"
           } else {

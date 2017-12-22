@@ -72,9 +72,8 @@ Network Simulation
                         <th>Service packets</th>
                         <th>Data packets</th>
                         <th>Time</th>
-                        {#
-                        <th>Traffic</th>
-                        #}
+                        <th>Service Traffic</th>
+                        <th>Data Traffic</th>
                     </tr>
                     </thead>
                     <tbody id="message-sending-table">
@@ -88,8 +87,8 @@ Network Simulation
     </div>
 </div>
 
-<button type="button" data-toggle="modal" data-target="#send-message-modal" class="btn">
-    Send a message
+<button type="button" data-toggle="modal" data-target="#send-message-modal" class="btn fixed-right">
+    <span class="glyphicon glyphicon glyphicon-envelope" aria-hidden="true"></span>
 </button>
 <div id="network"></div>
 {% endblock %}

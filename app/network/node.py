@@ -19,7 +19,11 @@ class Node:
         angle = (self.id - NODES_NUMBER * self.network_id) * int(360 / NODES_NUMBER)
 
         def calculate_x():
-            center_x = 300 if self.network_id % 2 == 0 else 1000
+            network_center = {1: 650, 2: 300, 3:1000}
+            try:
+                center_x = network_center[self.network_id]
+            except KeyError:
+                center_x = sum(network_center.values()) / len(network_center.values())
             return center_x + radius * sin(radians(angle))
 
         def calculate_y():
