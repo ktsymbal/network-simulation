@@ -17,7 +17,8 @@ function sendMessage() {
         "<td>" + appConfig.result.service_packets + "</td>" +
         "<td>" + appConfig.result.data_packets + "</td>" +
         "<td>" + appConfig.result.time + "</td>" +
-        "<td>" + appConfig.service_traffic + "</td></tr>" );
+        "<td>" + appConfig.result.service_traffic + "</td>" +
+        "<td>" + appConfig.result.data_traffic + "</td></tr>" );
     $('#message-sending-table-modal').modal('toggle');
   }
 }
